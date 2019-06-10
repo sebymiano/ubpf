@@ -130,6 +130,7 @@ uint64_t
 ubpf_exec(const struct ubpf_vm *vm, void *mem, size_t mem_len)
 {
     uint16_t pc = 0;
+    uint16_t executed_insts = 0;
     const struct ebpf_inst *insts = vm->insts;
     uint64_t reg[16];
     uint64_t stack[(STACK_SIZE+7)/8];
@@ -141,11 +142,14 @@ ubpf_exec(const struct ubpf_vm *vm, void *mem, size_t mem_len)
 
     reg[1] = (uintptr_t)mem;
     reg[10] = (uintptr_t)stack + sizeof(stack);
+    
+    printf("[ubpf_exec] Total number of instructions: %u\n", vm->num_insts);
 
     while (1) {
         const uint16_t cur_pc = pc;
         struct ebpf_inst inst = insts[pc++];
-
+        executed_insts++;
+        
         switch (inst.opcode) {
         case EBPF_OP_ADD_IMM:
             reg[inst.dst] += inst.imm;
@@ -546,6 +550,7 @@ ubpf_exec(const struct ubpf_vm *vm, void *mem, size_t mem_len)
             }
             break;
         case EBPF_OP_EXIT:
+            printf("[ubpf_exec] Number of instructions executed: %u\n", executed_insts);
             return reg[0];
         case EBPF_OP_CALL:
             reg[0] = vm->ext_funcs[inst.imm](reg[1], reg[2], reg[3], reg[4], reg[5]);
